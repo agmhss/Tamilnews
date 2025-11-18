@@ -177,11 +177,8 @@ function generatePDF(news) {
       // திருத்தம்: செய்தி தலைப்பையும் விளக்கத்தையும் தனித்தனியாக ஒரேமுறை மட்டும் சேர்ப்பு
       p.innerHTML += `
         <div class="pdCard">
-          <span class="num">${i+1}.</span>
           <span class="pdf-news-title">${it.title}</span> 
-          <span class="pdf-news-desc">${it.desc}</span>
-          <span class="pdf-source">— ${it.source}</span>
-          <div style="clear:both;"></div>
+        <div style="clear:both;"></div>
         </div>`;
     });
   };
