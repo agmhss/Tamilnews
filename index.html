@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>அண்ணா அரசு மாதிரி மேல்நிலை பள்ளி, பட்டீஸ்வரம் — இன்றைய செய்திகள்</title>
+<title>இன்றைய செய்திகள்</title>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Tamil:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -61,11 +61,11 @@
 </style>
 </head>
 <body>
-<header>அண்ணா அரசு மாதிரி மேல்நிலை பள்ளி, பட்டீஸ்வரம்</header>
-<div class="subheader">இன்றைய செய்திகள் </div>
+<header>இன்றைய செய்திகள்</header>
+<div class="subheader"> </div>
 
 <div class="controls">
-  <button id="playBtn">செய்தியை படிக்க</button>
+  <button id="playBtn">செய்தியை கேட்க</button>
   <button id="pauseBtn" class="ghost">நிறுத்த</button>
   <button id="stopBtn" class="ghost">நிறுத்து</button>
   <button id="pdfBtn">PDF பதிவிறக்க</button>
@@ -166,7 +166,7 @@ function render(news) {
 function generatePDF(news) {
   const p = document.getElementById("printable");
   p.innerHTML = `
-    <h1>அண்ணா அரசு மாதிரி மேல்நிலை பள்ளி, பட்டீஸ்வரம்<br><small style="font-size:14px;color:#222;">இன்றைய செய்திகள்</small></h1>
+    <h1>இன்றைய செய்திகள்</h1>
     <div class="date">${new Date().toLocaleDateString("ta-IN", {weekday:'long', year:'numeric', month:'long', day:'numeric'})}</div>
   `;
 
