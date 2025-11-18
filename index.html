@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="ta">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>அண்ணா அரசு மாதிரி மேல்நிலை பள்ளி, பட்டீஸ்வரம் — இன்றைய செய்திகள்</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Tamil:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<style>
+  :root{--accent:#2b6cb0;--bg:#f0f7ff;--muted:#55616a;}
+  html,body{margin:0;padding:0;background:var(--bg);font-family:"Noto Sans Tamil",sans-serif;color:#0b1220;}
+  header{background:var(--accent);color:#fff;padding:18px 12px;text-align:center;font-size:20px;font-weight:700;}
+  .subheader{text-align:center;padding:10px 12px;color:#083358;font-weight:600;}
+  .controls{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;padding:12px;}
+  button{font-size:15px;padding:8px 12px;border-radius:8px;background:var(--accent);color:#fff;border:none;cursor:pointer;}
+  button.ghost{background:#fff;color:var(--accent);border:1px solid var(--accent);}
+  #newsWrap{max-width:900px;margin:12px auto;padding:12px;}
+  .sectionTitle{font-size:19px;font-weight:700;color:var(--accent);margin:20px 0 12px;padding-bottom:6px;border-bottom:2px solid rgba(43,91,165,0.2);}
+  .card{background:white;border-radius:10px;padding:15px;box-shadow:0 4px 12px rgba(15,30,50,0.08);margin-bottom:14px;}
+  .title{font-weight:700;font-size:16px;margin-bottom:6px;line-height:1.3;}
+  .desc{font-size:14.5px;color:var(--muted);line-height:1.45;}
+  .meta{font-size:12px;color:#7a8a93;}
+  a.readmore{color:var(--accent);text-decoration:none;font-weight:600;font-size:13px;}
+
+  /* PDF பகுதி - வலதுபுற எழுத்துக்கள் வெட்டப்படாமல் இருக்க திருத்தம் */
+  /* width:190mm மற்றும் padding நீக்கப்பட்டது. html2pdf ஆப்ஷனில் மார்ஜின் கொடுக்கப்பட்டுள்ளது */
+  #printable{
+    position:absolute;left:-9999px;top:0;background:white;
+    font-size:13.8px;line-height:1.52;color:#000;
+    visibility:hidden;display:block !important;
+    max-width: 210mm; /* A4 width */
+    padding: 10mm; /* அச்சுக்கு முன் ஒரு ஸ்டாண்டர்ட் பேடிங் */
+  }
+  #printable h1{font-size:21px;font-weight:700;text-align:center;margin:0 0 8px 0;color:var(--accent);}
+  #printable .date{text-align:center;margin:0 0 20px 0;color:#444;font-weight:600;font-size:14px;}
+  #printable .sec{font-size:17px;font-weight:700;color:var(--accent);margin:22px 0 10px 0;text-align:center;}
+  .pdCard{margin:11px 0;padding:9px;background:#fafcff;border-radius:6px;}
+  .num{font-weight:700;color:var(--accent);margin-right:6px;}
+  /* #printable strong ஸ்டைல் நீக்கப்பட்டது, ஏனெனில் செய்தி தலைப்பை போல்டாக்கி டூப்ளிகேட் செய்தது */
+</style>
+</head>
+<body>
+<header>அண்ணா அரசு மாதிரி மேல்நிலை பள்ளி, பட்டீஸ்வரம்</header>
+<div class="subheader">இன்றைய செய்திகள் </div>
+
+<div class="controls">
+  <button id="playBtn">செய்தியை படிக்க</button>
+  <button id="pauseBtn" class="ghost">நிறுத்த</button>
+  <button id="stopBtn" class="ghost">நிறுத்து</button>
+  <button id="pdfBtn">PDF பதிவிறக்க</button>
+  <button id="refreshBtn" class="ghost">புதுப்பி</button>
+</div>
+
+<div id="newsWrap"><div id="news">செய்திகள் ஏற்றப்படுகிறது…</div></div>
+
+<div id="printable"></div>
+
+<script>
+const FEEDS = {
+  tamilnadu: "https://news.google.com/rss/search?q=when:24h+தமிழ்நாடு+செய்தி&hl=ta&gl=IN&ceid=IN:ta",
+  national:  "https://news.google.com/rss/search?q=when:24h+இந்தியா+செய்தி+-%E0%AE%A4%E0%AE%AE%E0%AE%BF%E0%AE%B4%E0%AF%8D%E0%AE%A8%E0%AE%BE%E0%AE%9F%E0%AF%81&hl=ta&gl=IN&ceid=IN:ta",
+  world:     "https://news.google.com/rss/search?q=when:24h+உலக+செய்தி&hl=ta&gl=IN&ceid=IN:ta"
+};
+
+async function fetchFeed(url) {
+  const proxy = "https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent(url);
+  try {
+    const r = await fetch(proxy);
+    if (!r.ok) return [];
+    const j = await r.json();
+    return (j.items || []).map(it => ({
+      title: it.title?.trim() || "",
+      desc: (it.description || "").replace(/<\/?[^>]+>/gi, "").replace(/\s+/g," ").trim().substring(0,180) + (it.description.length > 180 ? "…" : ""),
+      link: it.link,
+      date: it.pubDate,
+      source: (it.author || new URL(it.link).hostname.replace("www.","").split('.')[0]).toUpperCase()
+    }));
+  } catch(e) { console.warn("Feed failed:", url); return []; }
+}
+
+function isStudentFriendly(item) {
+  const text = (item.title + " " + item.desc).toLowerCase();
+  const bad = ["கொலை","தற்கொலை","தாக்குதல்","வன்முறை","குண்டு","Head Lines","தலைப்புச்","செய்திகள்","பாலியல்","அரசியல்","கைது","போராட்டம்","விபத்து","ஊழல்","போதை","மரணம்"];
+  return !bad.some(w => text.includes(w));
+}
+
+async function loadNews() {
+  const [tn, nat, intl] = await Promise.all([
+    fetchFeed(FEEDS.tamilnadu),
+    fetchFeed(FEEDS.national),
+    fetchFeed(FEEDS.world)
+  ]);
+
+  return {
+    tamilnadu: tn.filter(isStudentFriendly).slice(0,5),
+    national:  nat.filter(isStudentFriendly).slice(0,3),
+    world:     intl.filter(isStudentFriendly).slice(0,2)
+  };
+}
+
+function render(news) {
+  const wrap = document.getElementById("news");
+  wrap.innerHTML = "";
+  const createSection = (title, items) => {
+    if (!items.length) return;
+    const sec = document.createElement("section");
+    const h = document.createElement("div"); h.className = "sectionTitle"; h.textContent = title; sec.appendChild(h);
+    items.forEach(it => {
+      const card = document.createElement("article"); card.className = "card";
+      card.innerHTML = `
+        <div class="title">${it.title}</div>
+        <div class="desc">${it.desc}</div>
+        <div class="meta">${it.source} • ${it.date ? new Date(it.date).toLocaleDateString("ta-IN") : ""}</div>
+        <a href="${it.link}" target="_blank" rel="noopener" class="readmore">மேலும் படிக்க ↗</a>
+      `;
+      sec.appendChild(card);
+    });
+    wrap.appendChild(sec);
+  };
+
+  createSection("தமிழ்நாடு செய்திகள்", news.tamilnadu);
+  createSection("தேசிய செய்திகள்", news.national);
+  createSection("உலக செய்திகள்", news.world);
+
+  if (!news.tamilnadu.length && !news.national.length && !news.world.length) {
+    wrap.innerHTML = "<p style='text-align:center;color:#b33;padding:30px;'>செய்திகள் கிடைக்கவில்லை. மீண்டும் முயலவும்.</p>";
+  }
+}
+
+// PDF திருத்தம்: வலதுபுற எழுத்துக்கள் வெட்டப்படாமல் இருக்க மார்ஜின் சரி செய்யப்பட்டது & செய்தி டூப்ளிகேட் நீக்கப்பட்டது
+function generatePDF(news) {
+  const p = document.getElementById("printable");
+  p.innerHTML = `
+    <h1>அண்ணா அரசு மாதிரி மேல்நிலை பள்ளி, பட்டீஸ்வரம்<br><small style="font-size:14px;color:#222;">இன்றைய செய்திகள்</small></h1>
+    <div class="date">${new Date().toLocaleDateString("ta-IN", {weekday:'long', year:'numeric', month:'long', day:'numeric'})}</div>
+  `;
+
+  const addSec = (title, items) => {
+    if (!items.length) return;
+    p.innerHTML += `<div class="sec">${title}</div>`;
+    items.forEach((it, i) => {
+      // திருத்தம்: 'strong' டேக் நீக்கப்பட்டு, தலைப்பு சாதாரண எழுத்தில் சேர்க்கப்பட்டது
+      p.innerHTML += `
+        <div class="pdCard">
+          <span class="num">${i+1}.</span>
+          ${it.title}<br> 
+          <span style="color:#444;">${it.desc}</span><br>
+          <small style="color:#666;float:right;">— ${it.source}</small>
+          <div style="clear:both;"></div>
+        </div>`;
+    });
+  };
+
+  addSec("தமிழ்நாடு செய்திகள்", news.tamilnadu);
+  addSec("தேசிய செய்திகள்", news.national);
+  addSec("உலக செய்திகள்", news.world);
+
+  // PDF உருவாக்கம்
+  p.style.visibility = "visible";
+  p.style.position = "static";
+  p.style.left = "0";
+  p.style.width = "auto"; // PDF-க்கு ஏற்றவாறு அகலத்தை மாற்றவும்
+
+  const opt = {
+    // திருத்தம்: வலதுபுற எழுத்துக்கள் வெட்டப்படாமல் இருக்க மார்ஜின் சற்று அதிகரிக்கப்பட்டுள்ளது
+    margin: [10, 15, 10, 15], // [Top, Right, Bottom, Left] (MM)
+    filename: `இன்றைய_செய்தி_${new Date().toLocaleDateString('en-CA')}.pdf`,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true, letterRendering: true, allowTaint: true, backgroundColor: '#ffffff' },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  };
+
+  html2pdf().set(opt).from(p).save().then(() => {
+    // PDF முடிந்ததும் நிலையை மீட்டமைக்கவும்
+    p.style.position = "absolute";
+    p.style.left = "-9999px";
+    p.style.visibility = "hidden";
+    p.style.width = "190mm"; // பழைய அகலத்தை மீட்டமைத்தல் (தேவைப்பட்டால்)
+  });
+}
+// TTS
+let voices = [];
+window.speechSynthesis.onvoiceschanged = () => { voices = window.speechSynthesis.getVoices(); };
+
+function speak() {
+  window.speechSynthesis.cancel();
+
+  // எல்லா செய்திகளையும் ஒரு வரிசையில் சேகரிக்கிறோம்
+  const allNews = [
+    ...(latestNews.tamilnadu || []).map((n, i) => ({...n, section: "தமிழ்நாடு செய்திகள்", index: i+1})),
+    ...(latestNews.national || []).map((n, i) => ({...n, section: "தேசிய செய்திகள்", index: i+1})),
+    ...(latestNews.world || []).map((n, i) => ({...n, section: "உலக செய்திகள்", index: i+1}))
+  ];
+
+  if (allNews.length === 0) {
+    const utter = new SpeechSynthesisUtterance("இன்று செய்திகள் கிடைக்கவில்லை.");
+    utter.lang = "ta-IN";
+    window.speechSynthesis.speak(utter);
+    return;
+  }
+
+  let fullText = "நண்பர்களே, வணக்கம். இன்றைய முக்கிய தமிழ் செய்திகள்.\n\n";
+
+  let currentSection = "";
+
+  allNews.forEach(item => {
+    if (item.section !== currentSection) {
+      currentSection = item.section;
+      fullText += `${currentSection}...\n\n`;
+    }
+    fullText += `${item.index} ஆம் செய்தி... ${item.title.replace(/[,?.।]$/, "")}. \n\n`;
+  });
+
+  fullText += "இவை இன்றைய முக்கிய செய்திகள். மீண்டும் சந்திப்போம். நன்றி.";
+
+  const utterance = new SpeechSynthesisUtterance(fullText);
+  utterance.lang = "ta-IN";
+  
+  // தமிழ் voice தேர்ந்தெடுக்கிறோம்
+  const tamilVoice = voices.find(v => v.lang.startsWith("ta")) || 
+                     voices.find(v => v.name.toLowerCase().includes("tamil")) ||
+                     voices[0];
+  if (tamilVoice) utterance.voice = tamilVoice;
+
+  // News reader style settings
+  utterance.rate   = 0.92;   // சற்று மெதுவாக, தெளிவாக
+  utterance.pitch  = 1.05;   // சற்று உயர்ந்த குரல்
+  utterance.volume = 1.0;
+
+  // ஒவ்வொரு செய்திக்கும் இடையில் சிறிய இடைவெளி (pause)
+  utterance.onboundary = (event) => {
+    if (event.name === "sentence" && event.charIndex > 100) {
+      // ஒவ்வொரு செய்திக்கும் பிறகு 800ms pause
+      window.speechSynthesis.pause();
+      setTimeout(() => window.speechSynthesis.resume(), 800);
+    }
+  };
+
+  window.speechSynthesis.speak(utterance);
+}
+
+// Events
+let latestNews = {};
+document.getElementById("refreshBtn").onclick = async () => {
+  document.getElementById("news").innerHTML = "செய்திகள் ஏற்றப்படுகிறது…";
+  latestNews = await loadNews();
+  render(latestNews);
+};
+document.getElementById("playBtn").onclick = speak;
+document.getElementById("pauseBtn").onclick = () => speechSynthesis.pause();
+document.getElementById("stopBtn").onclick = () => speechSynthesis.cancel();
+document.getElementById("pdfBtn").onclick = () => generatePDF(latestNews);
+
+// முதல் ஏற்றம்
+(async () => {
+  latestNews = await loadNews();
+  render(latestNews);
+})();
+</script>
+</body>
+</html>
