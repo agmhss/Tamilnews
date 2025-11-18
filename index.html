@@ -23,21 +23,34 @@
   .meta{font-size:12px;color:#7a8a93;}
   a.readmore{color:var(--accent);text-decoration:none;font-weight:600;font-size:13px;}
 
-  /* PDF பகுதி - வலதுபுற எழுத்துக்கள் வெட்டப்படாமல் இருக்க திருத்தம் */
-  /* width:190mm மற்றும் padding நீக்கப்பட்டது. html2pdf ஆப்ஷனில் மார்ஜின் கொடுக்கப்பட்டுள்ளது */
+  /* PDF பகுதி ஸ்டைலிங் (ஒரு பக்கம் மற்றும் வெட்டுப்படாமல் இருக்க) */
   #printable{
     position:absolute;left:-9999px;top:0;background:white;
     font-size:13.8px;line-height:1.52;color:#000;
     visibility:hidden;display:block !important;
     max-width: 210mm; /* A4 width */
-    padding: 10mm; /* அச்சுக்கு முன் ஒரு ஸ்டாண்டர்ட் பேடிங் */
+    padding: 10mm; 
+    /* ஒற்றை பக்கத்தில் கட்டாயப்படுத்த, ஆனால் செய்திகள் அதிகமானால் இது சிக்கலை ஏற்படுத்தும் */
+    /* overflow: hidden; */ 
   }
   #printable h1{font-size:21px;font-weight:700;text-align:center;margin:0 0 8px 0;color:var(--accent);}
   #printable .date{text-align:center;margin:0 0 20px 0;color:#444;font-weight:600;font-size:14px;}
   #printable .sec{font-size:17px;font-weight:700;color:var(--accent);margin:22px 0 10px 0;text-align:center;}
   .pdCard{margin:11px 0;padding:9px;background:#fafcff;border-radius:6px;}
   .num{font-weight:700;color:var(--accent);margin-right:6px;}
-  /* #printable strong ஸ்டைல் நீக்கப்பட்டது, ஏனெனில் செய்தி தலைப்பை போல்டாக்கி டூப்ளிகேட் செய்தது */
+  /* PDF-இல் செய்தி தலைப்புக்கு போல்ட் ஸ்டைல் */
+  .pdCard .news-title {
+    font-weight: 700;
+    font-size: 14.5px; /* தலைப்பை விளக்கத்தை விட சற்றே பெரிதாக வைக்க */
+    display: block;
+    margin-bottom: 3px;
+    line-height: 1.3;
+  }
+  .pdCard .news-desc {
+    color: #444;
+    font-size: 13.5px;
+    line-height: 1.4;
+  }
 </style>
 </head>
 <body>
@@ -128,7 +141,7 @@ function render(news) {
   }
 }
 
-// PDF திருத்தம்: வலதுபுற எழுத்துக்கள் வெட்டப்படாமல் இருக்க மார்ஜின் சரி செய்யப்பட்டது & செய்தி டூப்ளிகேட் நீக்கப்பட்டது
+// PDF திருத்தம்: செய்தி டூப்ளிகேஷன் நீக்கப்பட்டது மற்றும் வலதுபுற எழுத்துக்கள் வெட்டப்படாமல் இருக்க மார்ஜின் சரி செய்யப்பட்டது
 function generatePDF(news) {
   const p = document.getElementById("printable");
   p.innerHTML = `
@@ -140,12 +153,12 @@ function generatePDF(news) {
     if (!items.length) return;
     p.innerHTML += `<div class="sec">${title}</div>`;
     items.forEach((it, i) => {
-      // திருத்தம்: 'strong' டேக் நீக்கப்பட்டு, தலைப்பு சாதாரண எழுத்தில் சேர்க்கப்பட்டது
+      // திருத்தம்: செய்தி தலைப்பையும் விளக்கத்தையும் தனித்தனியாக ஒரேமுறை மட்டும் சேர்ப்பு
       p.innerHTML += `
         <div class="pdCard">
           <span class="num">${i+1}.</span>
-          ${it.title}<br> 
-          <span style="color:#444;">${it.desc}</span><br>
+          <span class="news-title">${it.title}</span> 
+          <span class="news-desc">${it.desc}</span>
           <small style="color:#666;float:right;">— ${it.source}</small>
           <div style="clear:both;"></div>
         </div>`;
@@ -160,15 +173,26 @@ function generatePDF(news) {
   p.style.visibility = "visible";
   p.style.position = "static";
   p.style.left = "0";
-  p.style.width = "auto"; // PDF-க்கு ஏற்றவாறு அகலத்தை மாற்றவும்
+  p.style.width = "auto"; 
 
   const opt = {
-    // திருத்தம்: வலதுபுற எழுத்துக்கள் வெட்டப்படாமல் இருக்க மார்ஜின் சற்று அதிகரிக்கப்பட்டுள்ளது
+    // வலதுபுற எழுத்துக்கள் வெட்டப்படாமல் இருக்க, A4-க்கு நிலையான மார்ஜின்
     margin: [10, 15, 10, 15], // [Top, Right, Bottom, Left] (MM)
     filename: `இன்றைய_செய்தி_${new Date().toLocaleDateString('en-CA')}.pdf`,
     image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true, letterRendering: true, allowTaint: true, backgroundColor: '#ffffff' },
-    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    html2canvas: { 
+      scale: 2, 
+      useCORS: true, 
+      letterRendering: true, 
+      allowTaint: true, 
+      backgroundColor: '#ffffff'
+    },
+    jsPDF: { 
+      unit: 'mm', 
+      format: 'a4', 
+      orientation: 'portrait' 
+      /* செய்திகளின் எண்ணிக்கை கட்டுப்படுத்தப்பட்டுள்ளதால், இது ஒரே பக்கத்தில் வர வேண்டும் */
+    }
   };
 
   html2pdf().set(opt).from(p).save().then(() => {
@@ -176,7 +200,6 @@ function generatePDF(news) {
     p.style.position = "absolute";
     p.style.left = "-9999px";
     p.style.visibility = "hidden";
-    p.style.width = "190mm"; // பழைய அகலத்தை மீட்டமைத்தல் (தேவைப்பட்டால்)
   });
 }
 // TTS
